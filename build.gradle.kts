@@ -51,12 +51,16 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-common"))
     testImplementation(kotlin("test-annotations-common"))
-    testImplementation(kotlin("test-junit5"))
+    testImplementation(kotlin("test-junit5").toString()) {
+        exclude("org.junit.platform")
+    }
+    testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.2")
 }
 
 defaultTasks("test")
 
-tasks.withType<Test> {
+tasks.test {
     useJUnitPlatform()
 }
 
