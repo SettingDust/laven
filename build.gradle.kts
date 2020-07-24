@@ -2,9 +2,12 @@ plugins {
     kotlin("jvm") version "1.4-M3"
     `maven-publish`
 }
+val major = 1
+val minor = 0
+val patch = 1
 
 group = "me.settingdust"
-version = "1.0-SNAPSHOT"
+version = "$major.$minor.$patch-b${getBuildNumber()}${if (getStable().isNotBlank()) "-${getStable()}" else ""}"
 
 fun getBuildNumber(): String {
     if (System.getenv("BUILD_NUMBER") != null) {
