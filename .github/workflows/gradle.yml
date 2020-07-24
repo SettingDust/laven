@@ -13,15 +13,20 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+
       - name: Generate build number
         uses: einaregilsson/build-number@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Build with Gradle
         run: |
           ./gradlew clean
-          ./gradlew setupCIWorkspace
           ./gradlew build
+
       - name: Publish to Github Packages
         env:
           GPR_USER: ${{ secrets.GPR_USER }}
