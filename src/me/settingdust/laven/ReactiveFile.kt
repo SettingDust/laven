@@ -1,14 +1,10 @@
 package me.settingdust.laven
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
-import java.io.Closeable
 import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
@@ -20,50 +16,38 @@ import java.nio.file.WatchKey
 @ExperimentalCoroutinesApi
 object ReactiveFile {
     private val watchService = FileSystems.getDefault().newWatchService()
-    private val pathToHandlerMap = mutableMapOf<Path, Pair<WatchKey, FileEventHandler>>()
-    private var channel = Channel<FileEvent>()
+    private val pathToHandlerMap = mutableMapOf<Path, Pair<WatchKey, FileEventChannel<*>>>()
 
     init {
         GlobalScope.launch(Dispatchers.IO) {
-            channel.consumeEach {
-                it.apply {
-                    val pair = pathToHandlerMap[path]
-                    val fileEventHandler = pair?.second
-                    fileEventHandler?.apply {
-                        if (closed) {
-                            pathToHandlerMap.remove(path)
-                        } else {
-                            when (kind) {
-                                FileEvent.Kind.Create -> create?.invoke(path)
-                                FileEvent.Kind.Modify -> modify?.invoke(path)
-                                FileEvent.Kind.Delete -> delete?.invoke(path)
-                            }
-                        }
-                    }
-                }
-            }
             while (true) {
                 val watchKey = watchService.take()
                 val path = watchKey.watchable()
                 if (path is Path) {
-                    watchKey.pollEvents().forEach {
+                    watchKey.pollEvents().last().let {
                         val currentPath = path.resolve(it.context() as Path).absolutePath
                         val kind = FileEvent.Kind.getByKind(it.kind())
                         if (kind != null) {
-                            channel.send(
-                                FileEvent(
-                                    path = currentPath,
-                                    kind = kind
-                                )
-                            )
+                            val pair = pathToHandlerMap[currentPath]
+                            @Suppress("UNCHECKED_CAST") val fileEventChannel = pair?.second as? FileEventChannel<Any?>
+                            fileEventChannel?.apply {
+                                if (isClosedForSend) {
+                                    pathToHandlerMap.remove(currentPath)
+                                } else {
+                                    send(
+                                        FileEvent(
+                                            path = currentPath,
+                                            kind = kind,
+                                            data = converter?.invoke(currentPath, kind)
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
-                } else {
-                    watchKey.cancel()
-                    continue
                 }
 
-                if (!watchKey.reset()) {
+                if (!watchKey.reset() || path !is Path) {
                     watchKey.cancel()
                     continue
                 }
@@ -71,50 +55,26 @@ object ReactiveFile {
         }
     }
 
-    fun Path.subscribe(consumer: FileEventHandler.() -> Unit) {
-        val path = this.directory.absolutePath
-        val key = path.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
-        val handler = FileEventHandler()
-        consumer(handler)
-
-        pathToHandlerMap[path] = key to handler
+    fun <T> Path.subscribe(consumer: FileEventChannel<T>.() -> Unit): FileEventChannel<T> {
+        val path = this.absolutePath
+        val key = path.directory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        val channel = FileEventChannel<T>()
+        consumer(channel)
+        pathToHandlerMap[path] = key to channel
+        return channel
     }
 }
 
-class FileEventHandler : Closeable {
-    internal var create: ((path: Path) -> Unit)? = null
-    internal var modify: ((path: Path) -> Unit)? = null
-    internal var delete: ((path: Path) -> Unit)? = null
-    internal var closed: Boolean = false
-    fun create(consumer: (path: Path) -> Unit) {
-        checkClosed()
-        this.create = consumer
-    }
-
-    fun modify(consumer: (path: Path) -> Unit) {
-        checkClosed()
-        this.modify = consumer
-    }
-
-    fun delete(consumer: (path: Path) -> Unit) {
-        checkClosed()
-        this.delete = consumer
-    }
-
-    /**
-     * Close this handler
-     */
-    override fun close() {
-        checkClosed()
-        this.closed = true
-    }
-
-    private fun checkClosed() {
-        if (closed) throw ClosedReceiveChannelException("Closed file event handler")
+class FileEventChannel<T>(
+    private val channel: Channel<FileEvent<T>> = Channel()
+) : Channel<FileEvent<T>> by channel {
+    internal var converter: ((path: Path, kind: FileEvent.Kind) -> T)? = null
+    fun converter(consumer: (path: Path, kind: FileEvent.Kind) -> T) {
+        this.converter = consumer
     }
 }
 
-data class FileEvent(
+data class FileEvent<T>(
     /**
      * Path of file/directory
      */
@@ -124,6 +84,7 @@ data class FileEvent(
      * Kind of event
      */
     val kind: Kind,
+    val data: T
 ) {
     enum class Kind(val kind: WatchEvent.Kind<Path>?) {
         Create(ENTRY_CREATE), Modify(ENTRY_MODIFY), Delete(ENTRY_DELETE);
