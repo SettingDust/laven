@@ -11,7 +11,6 @@ import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
 import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
 import java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY
 import java.nio.file.WatchEvent
-import java.nio.file.WatchKey
 
 @ExperimentalCoroutinesApi
 object ReactiveFile {
