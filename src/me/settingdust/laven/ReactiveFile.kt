@@ -16,7 +16,7 @@ import java.nio.file.WatchKey
 @ExperimentalCoroutinesApi
 object ReactiveFile {
     private val watchService = FileSystems.getDefault().newWatchService()
-    private val pathToHandlerMap = mutableMapOf<Path, Pair<WatchKey, FileEventChannel<*>>>()
+    private val pathToHandlerMap = mutableMapOf<Path, FileEventChannel<*>>()
 
     init {
         GlobalScope.launch(Dispatchers.IO) {
@@ -24,13 +24,14 @@ object ReactiveFile {
                 val watchKey = watchService.take()
                 val path = watchKey.watchable()
                 if (path is Path) {
-                    val events = watchKey.pollEvents().reversed().distinctBy { it.context() }
+                    val pollEvents = watchKey.pollEvents()
+                    val events = pollEvents.reversed().distinctBy { it.context() }
                     events.forEach {
                         val currentPath = path.resolve(it.context() as Path).absolutePath
                         val kind = FileEvent.Kind.getByKind(it.kind())
                         if (kind != null) {
-                            val pair = pathToHandlerMap[currentPath]
-                            @Suppress("UNCHECKED_CAST") val fileEventChannel = pair?.second as? FileEventChannel<Any?>
+                            @Suppress("UNCHECKED_CAST")
+                            val fileEventChannel = pathToHandlerMap[currentPath] as? FileEventChannel<Any?>
                             fileEventChannel?.apply {
                                 if (isClosedForSend) {
                                     pathToHandlerMap.remove(currentPath)
@@ -58,10 +59,11 @@ object ReactiveFile {
 
     fun <T> Path.subscribe(consumer: FileEventChannel<T>.() -> Unit): FileEventChannel<T> {
         val path = this.absolutePath
-        val key = path.directory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        path.directory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+
         val channel = FileEventChannel<T>()
         consumer(channel)
-        pathToHandlerMap[path] = key to channel
+        pathToHandlerMap[path] = channel
         return channel
     }
 }
