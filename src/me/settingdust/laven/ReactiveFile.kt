@@ -24,7 +24,8 @@ object ReactiveFile {
                 val watchKey = watchService.take()
                 val path = watchKey.watchable()
                 if (path is Path) {
-                    watchKey.pollEvents().last().let {
+                    val events = watchKey.pollEvents().reversed().distinctBy { it.context() }
+                    events.forEach {
                         val currentPath = path.resolve(it.context() as Path).absolutePath
                         val kind = FileEvent.Kind.getByKind(it.kind())
                         if (kind != null) {

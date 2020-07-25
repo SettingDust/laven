@@ -24,14 +24,6 @@ import kotlin.test.assertTrue
 
 @ExperimentalCoroutinesApi
 class ReactiveFileTest {
-    private val path = Paths.get("testresources", "reactive")
-
-    @AfterTest
-    @BeforeTest
-    fun deleteTestFiles() {
-        path.file.delete()
-    }
-
     @Test
     fun `path should be directory`() {
         val path = Paths.get("testresources", "reactive").directory
@@ -41,8 +33,10 @@ class ReactiveFileTest {
     @Test
     fun `file create event should be fired`() {
         var receive: FileEvent<String?>?
+        val path = Paths.get("testresources", "create")
+        path.file.delete()
         runBlocking {
-            withTimeout(2000) {
+            withTimeout(5000) {
                 val channel = path.subscribe<String?> {
                     converter { path, kind ->
                         if (kind != FileEvent.Kind.Delete) {
@@ -55,7 +49,6 @@ class ReactiveFileTest {
                 path.file.createNewFile()
                 receive = channel.receive()
             }
-
             assertNotNull(receive)
             assertEquals(path.absolutePath, receive!!.path)
             assertEquals(FileEvent.Kind.Create, receive!!.kind)
@@ -66,11 +59,12 @@ class ReactiveFileTest {
 
     @Test
     fun `file modify event should be fired`() {
-        val random = Math.random().toString()
-        var receive: FileEvent<String?>?
-        path.file.createNewFile()
         runBlocking {
-            withTimeout(2000) {
+            val random = Math.random().toString()
+            val path = Paths.get("testresources", "modify")
+            var receive: FileEvent<String?>?
+            path.file.createNewFile()
+            withTimeout(5000) {
                 val channel = path.subscribe<String?> {
                     converter { path, kind ->
                         if (kind != FileEvent.Kind.Delete) {
@@ -95,9 +89,10 @@ class ReactiveFileTest {
     @Test
     fun `file delete event should be fired`() {
         var receive: FileEvent<String?>? = null
+        val path = Paths.get("testresources", "delete")
         path.file.createNewFile()
         runBlocking {
-            withTimeout(2000) {
+            withTimeout(5000) {
                 val channel = path.subscribe<String?> {
                     converter { path, kind ->
                         if (kind != FileEvent.Kind.Delete) {
