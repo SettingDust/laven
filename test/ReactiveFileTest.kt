@@ -1,12 +1,6 @@
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.first
-import kotlinx.coroutines.channels.last
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import me.settingdust.laven.FileEvent
 import me.settingdust.laven.ReactiveFile.subscribe
 import me.settingdust.laven.absolutePath
@@ -14,8 +8,6 @@ import me.settingdust.laven.directory
 import me.settingdust.laven.file
 import me.settingdust.laven.isDirectory
 import java.nio.file.Paths
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -88,7 +80,7 @@ class ReactiveFileTest {
 
     @Test
     fun `file delete event should be fired`() {
-        var receive: FileEvent<String?>? = null
+        var receive: FileEvent<String?>?
         val path = Paths.get("testresources", "delete")
         path.file.createNewFile()
         runBlocking {
