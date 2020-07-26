@@ -31,7 +31,7 @@ class ReactiveFileTest {
             withTimeout(5000) {
                 val channel = path.subscribe<String?> {
                     converter { path, kind ->
-                        if (kind != FileEvent.Kind.Delete) {
+                        if (path.file.exists()) {
                             return@converter path.file.readText()
                         } else {
                             return@converter null
@@ -59,7 +59,7 @@ class ReactiveFileTest {
             withTimeout(5000) {
                 val channel = path.subscribe<String?> {
                     converter { path, kind ->
-                        if (kind != FileEvent.Kind.Delete) {
+                        if (path.file.exists()) {
                             return@converter path.file.readText()
                         } else {
                             return@converter null
@@ -86,7 +86,7 @@ class ReactiveFileTest {
             withTimeout(5000) {
                 val channel = path.subscribe<String?> {
                     converter { path, kind ->
-                        if (kind != FileEvent.Kind.Delete) {
+                        if (path.file.exists()) {
                             return@converter path.file.readText()
                         } else {
                             return@converter null
@@ -101,5 +101,42 @@ class ReactiveFileTest {
             assertEquals(FileEvent.Kind.Delete, receive!!.kind)
             assertNull(receive!!.data)
         }
+    }
+
+    @Test
+    fun `multi files event should be fired`() {
+        var receive1: FileEvent<String?>?
+        val path1 = Paths.get("testresources", "multi")
+        path1.file.createNewFile()
+        val path2 = Paths.get("testresources", "multi2")
+        runBlocking {
+            withTimeout(5000) {
+                val channel1 = path1.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
+                }
+                path1.file.delete()
+                receive1 = channel1.receive()
+
+                path2.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
+                }
+            }
+        }
+        assertNotNull(receive1)
+        assertEquals(path1.absolutePath, receive1!!.path)
+        assertEquals(FileEvent.Kind.Delete, receive1!!.kind)
+        assertNull(receive1!!.data)
     }
 }
