@@ -27,26 +27,26 @@ class ReactiveFileTest {
         var receive: FileEvent<String?>?
         val path = Paths.get("testresources", "create")
         path.file.delete()
-        val channel = path.subscribe<String?> {
-            converter { path, kind ->
-                if (kind != FileEvent.Kind.Delete) {
-                    return@converter path.file.readText()
-                } else {
-                    return@converter null
-                }
-            }
-        }
-        path.file.createNewFile()
         runBlocking {
             withTimeout(5000) {
+                val channel = path.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
+                }
+                path.file.createNewFile()
                 receive = channel.receive()
             }
+            assertNotNull(receive)
+            assertEquals(path.absolutePath, receive!!.path)
+            assertEquals(FileEvent.Kind.Create, receive!!.kind)
+            assertNotNull(receive!!.data)
+            assert(receive!!.data!!.isBlank())
         }
-        assertNotNull(receive)
-        assertEquals(path.absolutePath, receive!!.path)
-        assertEquals(FileEvent.Kind.Create, receive!!.kind)
-        assertNotNull(receive!!.data)
-        assert(receive!!.data!!.isBlank())
     }
 
     @Test
@@ -55,26 +55,26 @@ class ReactiveFileTest {
         val path = Paths.get("testresources", "modify")
         var receive: FileEvent<String?>?
         path.file.createNewFile()
-        val channel = path.subscribe<String?> {
-            converter { path, kind ->
-                if (kind != FileEvent.Kind.Delete) {
-                    return@converter path.file.readText()
-                } else {
-                    return@converter null
-                }
-            }
-        }
-        path.file.writeText(random)
         runBlocking {
             withTimeout(5000) {
+                val channel = path.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
+                }
+                path.file.writeText(random)
                 receive = channel.receive()
             }
+            assertNotNull(receive)
+            assertEquals(path.absolutePath, receive!!.path)
+            assertEquals(FileEvent.Kind.Modify, receive!!.kind)
+            assertNotNull(receive!!.data)
+            assertEquals(random, receive!!.data)
         }
-        assertNotNull(receive)
-        assertEquals(path.absolutePath, receive!!.path)
-        assertEquals(FileEvent.Kind.Modify, receive!!.kind)
-        assertNotNull(receive!!.data)
-        assertEquals(random, receive!!.data)
     }
 
     @Test
@@ -82,24 +82,61 @@ class ReactiveFileTest {
         var receive: FileEvent<String?>?
         val path = Paths.get("testresources", "delete")
         path.file.createNewFile()
-        val channel = path.subscribe<String?> {
-            converter { path, kind ->
-                if (kind != FileEvent.Kind.Delete) {
-                    return@converter path.file.readText()
-                } else {
-                    return@converter null
+        runBlocking {
+            withTimeout(5000) {
+                val channel = path.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
+                }
+                path.file.delete()
+                receive = channel.receive()
+            }
+            assertNotNull(receive)
+            assertEquals(path.absolutePath, receive!!.path)
+            assertEquals(FileEvent.Kind.Delete, receive!!.kind)
+            assertNull(receive!!.data)
+        }
+    }
+
+    @Test
+    fun `multi files event should be fired`() {
+        var receive1: FileEvent<String?>?
+        val path1 = Paths.get("testresources", "multi")
+        path1.file.createNewFile()
+        val path2 = Paths.get("testresources", "multi2")
+        runBlocking {
+            withTimeout(5000) {
+                val channel1 = path1.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
+                }
+                path1.file.delete()
+                receive1 = channel1.receive()
+
+                path2.subscribe<String?> {
+                    converter { path, kind ->
+                        if (path.file.exists()) {
+                            return@converter path.file.readText()
+                        } else {
+                            return@converter null
+                        }
+                    }
                 }
             }
         }
-        path.file.delete()
-        runBlocking {
-            withTimeout(5000) {
-                receive = channel.receive()
-            }
-        }
-        assertNotNull(receive)
-        assertEquals(path.absolutePath, receive!!.path)
-        assertEquals(FileEvent.Kind.Delete, receive!!.kind)
-        assertNull(receive!!.data)
+        assertNotNull(receive1)
+        assertEquals(path1.absolutePath, receive1!!.path)
+        assertEquals(FileEvent.Kind.Delete, receive1!!.kind)
+        assertNull(receive1!!.data)
     }
 }
