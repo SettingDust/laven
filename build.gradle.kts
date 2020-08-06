@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.4-M3"
+    kotlin("jvm") version "1.4.0-rc"
     `maven-publish`
 }
 val major = 1
@@ -47,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", "1.4-M3"))
+    implementation(kotlin("stdlib", "1.4.0-rc"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
     implementation("io.github.config4k:config4k:0.4.2")
 
