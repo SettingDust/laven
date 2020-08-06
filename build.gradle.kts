@@ -7,21 +7,21 @@ val minor = 0
 val patch = 1
 
 group = "me.settingdust"
-version = "$major.$minor.$patch-b${getBuildNumber()}${if (getStable().isNotBlank()) "-${getStable()}" else ""}"
+val mainVersion = arrayOf(major, minor, patch).joinToString(".")
 
-fun getBuildNumber(): String {
+group = "me.settingdust"
+version = {
+    var version = mainVersion
+    val suffix = mutableListOf<String>("")
     if (System.getenv("BUILD_NUMBER") != null) {
-        return System.getenv("BUILD_NUMBER").toString()
+        suffix += System.getenv("BUILD_NUMBER").toString()
     }
-    return ""
-}
-
-fun getStable(): String {
     if (System.getenv("GITHUB_REF") == null || System.getenv("GITHUB_REF").endsWith("-dev")) {
-        return "unstable"
+        suffix += "unstable"
     }
-    return ""
-}
+    version += suffix.joinToString("-")
+    version
+}()
 
 publishing {
     repositories {
