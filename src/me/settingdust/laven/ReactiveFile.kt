@@ -24,7 +24,7 @@ object ReactiveFile {
                 val path = watchKey.watchable()
                 if (path is Path) {
                     val pollEvents = watchKey.pollEvents()
-                    val events = pollEvents.reversed().distinctBy { it.context() }
+                    val events = pollEvents.reversed().distinctBy { it.context() }.reversed()
                     events.forEach {
                         val currentPath = path.resolve(it.context() as Path).absolutePath
                         val kind = FileEvent.Kind.getByKind(it.kind())
@@ -56,12 +56,11 @@ object ReactiveFile {
         }
     }
 
-    fun <T> Path.subscribe(consumer: FileEventChannel<T>.() -> Unit): FileEventChannel<T> {
+    fun <T> Path.subscribe(fileEventChannel: FileEventChannel<T>.() -> Unit): FileEventChannel<T> {
         val path = this.absolutePath
         path.directory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
-
         val channel = FileEventChannel<T>()
-        consumer(channel)
+        fileEventChannel(channel)
         pathToHandlerMap[path] = channel
         return channel
     }
