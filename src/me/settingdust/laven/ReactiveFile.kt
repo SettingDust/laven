@@ -66,7 +66,7 @@ object ReactiveFile {
     }
 }
 
-class FileEventChannel<T>(
+open class FileEventChannel<T>(
     private val channel: Channel<FileEvent<T>> = Channel()
 ) : Channel<FileEvent<T>> by channel {
     internal var converter: ((path: Path, kind: FileEvent.Kind) -> T)? = null

@@ -1,6 +1,9 @@
+import com.diffplug.gradle.spotless.SpotlessApply
+
 plugins {
     kotlin("jvm") version "1.4.0-rc"
     `maven-publish`
+    id("com.diffplug.spotless") version "5.1.0"
 }
 val major = 1
 val minor = 0
@@ -12,7 +15,7 @@ val mainVersion = arrayOf(major, minor, patch).joinToString(".")
 group = "me.settingdust"
 version = {
     var version = mainVersion
-    val suffix = mutableListOf<String>("")
+    val suffix = mutableListOf("")
     if (System.getenv("BUILD_NUMBER") != null) {
         suffix += System.getenv("BUILD_NUMBER").toString()
     }
@@ -47,23 +50,29 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", "1.4.0-rc"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
+    api(kotlin("stdlib", "1.4.0-rc"))
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
 
-    testImplementation(kotlin("test"))
-    testImplementation(kotlin("test-common"))
-    testImplementation(kotlin("test-annotations-common"))
-    testImplementation(kotlin("test-junit5").toString()) {
+    testApi(kotlin("test"))
+    testApi(kotlin("test-common"))
+    testApi(kotlin("test-annotations-common"))
+    testApi(kotlin("test-junit5").toString()) {
         exclude("org.junit.platform")
     }
-    testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
+    testApi("org.junit.jupiter:junit-jupiter:5.6.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.2")
 }
 
 defaultTasks("test")
 
-tasks.test {
-    useJUnitPlatform()
+tasks {
+    build {
+        dependsOn(withType<SpotlessApply>())
+    }
+
+    test {
+        useJUnitPlatform()
+    }
 }
 
 sourceSets.apply {
@@ -75,5 +84,15 @@ sourceSets.apply {
     test {
         java.srcDirs("test")
         resources.srcDirs("testresources")
+    }
+}
+
+spotless {
+    val ktlintVersion = "0.37.2"
+    kotlin {
+        ktlint(ktlintVersion)
+    }
+    kotlinGradle {
+        ktlint(ktlintVersion)
     }
 }
