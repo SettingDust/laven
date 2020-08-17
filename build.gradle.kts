@@ -1,7 +1,7 @@
 import com.diffplug.gradle.spotless.SpotlessApply
 
 plugins {
-    kotlin("jvm") version "1.4.0-rc"
+    kotlin("jvm") version "1.4.0"
     `maven-publish`
     id("com.diffplug.spotless") version "5.1.0"
 }
