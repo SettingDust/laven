@@ -57,12 +57,17 @@ object ReactiveFile {
     }
 
     fun <T> Path.subscribe(fileEventChannel: FileEventChannel<T>.() -> Unit): FileEventChannel<T> {
-        val path = this.absolutePath
-        path.directory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
         val channel = FileEventChannel<T>()
         fileEventChannel(channel)
-        pathToHandlerMap[path] = channel
+        this.subscribe(channel)
         return channel
+    }
+
+    fun <T> Path.subscribe(fileEventChannel: FileEventChannel<T>): FileEventChannel<T> {
+        val path = this.absolutePath
+        path.directory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        pathToHandlerMap[path] = fileEventChannel
+        return fileEventChannel
     }
 }
 

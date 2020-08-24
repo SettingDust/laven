@@ -45,12 +45,10 @@ publishing {
 }
 
 repositories {
-    maven("https://dl.bintray.com/kotlin/kotlin-eap")
     mavenCentral()
 }
 
 dependencies {
-    api(kotlin("stdlib", "1.4.0-rc"))
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
 
     testApi(kotlin("test"))
