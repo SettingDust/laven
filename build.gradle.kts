@@ -49,6 +49,7 @@ repositories {
 }
 
 dependencies {
+    kotlin("stdlib", "1.4.0")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
 
     testApi(kotlin("test"))
