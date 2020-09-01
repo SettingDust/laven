@@ -7,9 +7,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import java.nio.file.FileSystems
 import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
-import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
-import java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY
+import java.nio.file.StandardWatchEventKinds.*
 import java.nio.file.WatchEvent
 
 @ExperimentalCoroutinesApi
