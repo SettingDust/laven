@@ -1,9 +1,8 @@
-import com.diffplug.gradle.spotless.SpotlessApply
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.4.0"
     `maven-publish`
-    id("com.diffplug.spotless") version "5.1.0"
 }
 val major = 1
 val minor = 0
@@ -13,18 +12,19 @@ group = "me.settingdust"
 val mainVersion = arrayOf(major, minor, patch).joinToString(".")
 
 group = "me.settingdust"
-version = {
-    var version = mainVersion
-    val suffix = mutableListOf("")
-    if (System.getenv("BUILD_NUMBER") != null) {
-        suffix += System.getenv("BUILD_NUMBER").toString()
-    }
-    if (System.getenv("GITHUB_REF") == null || System.getenv("GITHUB_REF").endsWith("-dev")) {
-        suffix += "unstable"
-    }
-    version += suffix.joinToString("-")
-    version
-}()
+version =
+    "$mainVersion${
+        @OptIn(ExperimentalStdlibApi::class)
+        buildList {
+            add("")
+            if (System.getenv("BUILD_NUMBER") != null) {
+                add(System.getenv("BUILD_NUMBER").toString())
+            }
+            if (System.getenv("GITHUB_REF") == null || System.getenv("GITHUB_REF").endsWith("-dev")) {
+                add("unstable")
+            }
+        }.joinToString("-")
+    }"
 
 publishing {
     repositories {
@@ -44,34 +44,8 @@ publishing {
     }
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    kotlin("stdlib", "1.4.0")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
-
-    testApi(kotlin("test"))
-    testApi(kotlin("test-common"))
-    testApi(kotlin("test-annotations-common"))
-    testApi(kotlin("test-junit5").toString()) {
-        exclude("org.junit.platform")
-    }
-    testApi("org.junit.jupiter:junit-jupiter:5.6.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.2")
-}
-
-defaultTasks("test")
-
-tasks {
-    build {
-        dependsOn(withType<SpotlessApply>())
-    }
-
-    test {
-        useJUnitPlatform()
-    }
+    implementation(kotlin("stdlib", "1.4.0"))
 }
 
 sourceSets.apply {
@@ -83,15 +57,5 @@ sourceSets.apply {
     test {
         java.srcDirs("test")
         resources.srcDirs("testresources")
-    }
-}
-
-spotless {
-    val ktlintVersion = "0.37.2"
-    kotlin {
-        ktlint(ktlintVersion)
-    }
-    kotlinGradle {
-        ktlint(ktlintVersion)
     }
 }
