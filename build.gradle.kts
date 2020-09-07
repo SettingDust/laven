@@ -4,7 +4,7 @@ plugins {
 }
 val major = 1
 val minor = 0
-val patch = 1
+val patch = 2
 
 val mainVersion = arrayOf(major, minor, patch).joinToString(".")
 
