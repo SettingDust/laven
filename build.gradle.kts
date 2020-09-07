@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     kotlin("jvm") version "1.4.0"
     `maven-publish`
@@ -8,7 +6,6 @@ val major = 1
 val minor = 0
 val patch = 1
 
-group = "me.settingdust"
 val mainVersion = arrayOf(major, minor, patch).joinToString(".")
 
 group = "me.settingdust"
@@ -42,6 +39,10 @@ publishing {
             from(components["java"])
         }
     }
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {
