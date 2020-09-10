@@ -1,0 +1,73 @@
+buildscript {
+    repositories {
+        maven {
+            url = uri("https://plugins.gradle.org/m2/")
+        }
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.0")
+    }
+}
+
+plugins {
+    id("maven-publish")
+}
+
+applyPlugin("org.jetbrains.kotlin.jvm")
+
+def applyPlugin(id) {
+    if (project.plugins.findPlugin(id) != null) {
+        println("$id already applied")
+    } else {
+        apply plugin: id
+    }
+}
+
+def major = 1
+def minor = 0
+def patch = 2
+
+def mainVersion = [major, minor, patch].join(".")
+
+group = "me.settingdust"
+version = """$mainVersion${
+    new ArrayList() {
+        {
+            add("")
+
+            if (System.getenv("BUILD_NUMBER") != null)
+                add(System.getenv("BUILD_NUMBER").toString())
+
+            if (System.getenv("GITHUB_REF") == null || System.getenv("GITHUB_REF").endsWith("-dev"))
+                add("unstable")
+        }
+    }.join("-")}"""
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/SettingDust/laven")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GPR_USER")
+                password = project.findProperty("gpr.key") ?: System.getenv("GPR_API_KEY")
+            }
+        }
+    }
+    publications {
+        create("gpr", MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java.srcDirs("src")
+        resources.srcDirs("resources")
+    }
+}
