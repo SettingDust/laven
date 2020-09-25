@@ -30,18 +30,12 @@ def patch = 2
 def mainVersion = [major, minor, patch].join(".")
 
 group = "me.settingdust"
-version = """$mainVersion${
-    new ArrayList() {
-        {
-            add("")
+version = mainVersion
 
-            if (System.getenv("BUILD_NUMBER") != null)
-                add(System.getenv("BUILD_NUMBER").toString())
-
-            if (System.getenv("GITHUB_REF") == null || System.getenv("GITHUB_REF").endsWith("-dev"))
-                add("unstable")
-        }
-    }.join("-")}"""
+if (System.getenv("BUILD_NUMBER") != null)
+    version += ".b${System.getenv("BUILD_NUMBER").toString()}"
+if (System.getenv("GITHUB_REF") == null || System.getenv("GITHUB_REF").endsWith("-dev"))
+    version += "-dev"
 
 publishing {
     repositories {
